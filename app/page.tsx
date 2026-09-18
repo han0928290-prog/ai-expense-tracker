@@ -18,6 +18,8 @@ type SavedExpense = {
   merchant?: string;
   date: string;
   note?: string;
+  authorName?: string;
+  createdAt?: string;
 };
 
 function formatDateLabel(dateKey: string): string {
@@ -31,6 +33,15 @@ function formatDateLabel(dateKey: string): string {
 
   const [, m, d] = dateKey.split("-");
   return `${Number(m)}月${Number(d)}日`;
+}
+
+function formatTime(iso?: string): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("zh-TW", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 export default function Home() {
@@ -125,6 +136,13 @@ export default function Home() {
                 {expense.merchant ? ` · ${expense.merchant}` : ""}
                 {expense.note ? ` · ${expense.note}` : ""}
               </p>
+              {(expense.authorName || expense.createdAt) && (
+                <p className="mt-1 pl-4 text-[11px] text-ink-subtle">
+                  {expense.authorName && `由 ${expense.authorName} 記錄`}
+                  {expense.authorName && expense.createdAt ? " · " : ""}
+                  {formatTime(expense.createdAt)}
+                </p>
+              )}
             </div>
           ))
         )}

@@ -4,6 +4,7 @@ import { analyzeExpenseText } from "@/lib/openai";
 import { getCurrentSession } from "@/lib/auth/server";
 import Expense from "@/models/Expense";
 import Project from "@/models/Project";
+import User from "@/models/User";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -29,12 +30,19 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const expenses = await Expense.find({ userId: session.userId, projectId, date }).sort({
-    createdAt: -1,
-  });
+  const [expenses, author] = await Promise.all([
+    Expense.find({ userId: session.userId, projectId, date })
+      .sort({ createdAt: -1 })
+      .lean(),
+    User.findById(session.userId).select("name").lean(),
+  ]);
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const withAuthor = expenses.map((expense) => ({
+    ...expense,
+    authorName: author?.name ?? "",
+  }));
 
-  return NextResponse.json({ date, expenses, total });
+  return NextResponse.json({ date, expenses: withAuthor, total });
 }
 
 export async function POST(request: NextRequest) {
