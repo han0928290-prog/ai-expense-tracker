@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { DateScroller } from "@/components/DateScroller";
 import { AddExpenseBar } from "@/components/AddExpenseBar";
 import { CategorySummary } from "@/components/CategorySummary";
+import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { getCategoryColorVar } from "@/lib/categories";
 import { toDateKey } from "@/lib/date";
+import { useProject } from "@/lib/project-context";
 
 type SavedExpense = {
   _id: string;
@@ -32,9 +34,11 @@ function formatDateLabel(dateKey: string): string {
 }
 
 export default function Home() {
+  const { currentProjectId } = useProject();
   const [selectedDate, setSelectedDate] = useState(() => toDateKey(new Date()));
   const [result, setResult] = useState<{
     date: string;
+    projectId: string | null;
     expenses: SavedExpense[];
     total: number;
   } | null>(null);
@@ -42,13 +46,15 @@ export default function Home() {
 
   useEffect(() => {
     let cancelled = false;
+    const projectQuery = currentProjectId ? `&projectId=${currentProjectId}` : "";
 
-    fetch(`/api/expenses?date=${selectedDate}`, { cache: "no-store" })
+    fetch(`/api/expenses?date=${selectedDate}${projectQuery}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return;
         setResult({
           date: selectedDate,
+          projectId: currentProjectId,
           expenses: data.expenses || [],
           total: data.total || 0,
         });
@@ -57,20 +63,23 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDate, refreshKey]);
+  }, [selectedDate, currentProjectId, refreshKey]);
 
-  const loading = result?.date !== selectedDate;
+  const loading = result?.date !== selectedDate || result?.projectId !== currentProjectId;
   const expenses = loading ? [] : result?.expenses ?? [];
   const dayTotal = loading ? 0 : result?.total ?? 0;
   const month = selectedDate.slice(0, 7);
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-44 pt-6">
-      <header>
-        <h1 className="text-xl font-bold text-ink">Hank的AI家庭記帳本</h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          用一句話描述你的花費，AI 會解析成結構化資料並存進 MongoDB。
-        </p>
+      <header className="flex flex-col gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Hank的AI家庭記帳本</h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            用一句話描述你的花費，AI 會解析成結構化資料並存進 MongoDB。
+          </p>
+        </div>
+        <ProjectSwitcher />
       </header>
 
       <DateScroller selected={selectedDate} onSelect={setSelectedDate} />
@@ -121,9 +130,9 @@ export default function Home() {
         )}
       </section>
 
-      <CategorySummary month={month} refreshKey={refreshKey} />
+      <CategorySummary month={month} projectId={currentProjectId} refreshKey={refreshKey} />
 
-      <AddExpenseBar onAdded={() => setRefreshKey((k) => k + 1)} />
+      <AddExpenseBar projectId={currentProjectId} onAdded={() => setRefreshKey((k) => k + 1)} />
     </div>
   );
 }

@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { SendIcon } from "@/components/icons";
 
-export function AddExpenseBar({ onAdded }: { onAdded: () => void }) {
+export function AddExpenseBar({
+  projectId,
+  onAdded,
+}: {
+  projectId: string | null;
+  onAdded: () => void;
+}) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +27,7 @@ export function AddExpenseBar({ onAdded }: { onAdded: () => void }) {
       const res = await fetch("/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, projectId }),
       });
 
       const data = await res.json();

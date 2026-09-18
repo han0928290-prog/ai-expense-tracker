@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { getCurrentSession } from "@/lib/auth/server";
 import Expense from "@/models/Expense";
+import Project from "@/models/Project";
 
 const MONTH_KEY_PATTERN = /^\d{4}-\d{2}$/;
 const YEAR_KEY_PATTERN = /^\d{4}$/;
@@ -52,12 +53,20 @@ export async function GET(request: NextRequest) {
   const month = request.nextUrl.searchParams.get("month");
   const year = request.nextUrl.searchParams.get("year");
   const category = request.nextUrl.searchParams.get("category");
+  const projectId = request.nextUrl.searchParams.get("projectId") || null;
 
   if (!month && !year) {
     return NextResponse.json({ error: "請提供 month 或 year 參數" }, { status: 400 });
   }
 
   await connectToDatabase();
+
+  if (projectId) {
+    const project = await Project.findOne({ _id: projectId, userId: session.userId });
+    if (!project) {
+      return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
+    }
+  }
 
   if (month) {
     if (!MONTH_KEY_PATTERN.test(month)) {
@@ -68,6 +77,7 @@ export async function GET(request: NextRequest) {
     const end = `${nextMonthKey(month)}-01`;
     const expenses = await Expense.find({
       userId: session.userId,
+      projectId,
       date: { $gte: start, $lt: end },
       ...(category ? { category } : {}),
     });
@@ -85,6 +95,7 @@ export async function GET(request: NextRequest) {
   const end = `${Number(year) + 1}-01-01`;
   const expenses = await Expense.find({
     userId: session.userId,
+    projectId,
     date: { $gte: start, $lt: end },
     ...(category ? { category } : {}),
   });

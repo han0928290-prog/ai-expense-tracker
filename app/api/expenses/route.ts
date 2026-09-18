@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { analyzeExpenseText } from "@/lib/openai";
 import { getCurrentSession } from "@/lib/auth/server";
 import Expense from "@/models/Expense";
+import Project from "@/models/Project";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -13,13 +14,22 @@ export async function GET(request: NextRequest) {
   }
 
   const date = request.nextUrl.searchParams.get("date");
+  const projectId = request.nextUrl.searchParams.get("projectId") || null;
 
   if (!date || !DATE_KEY_PATTERN.test(date)) {
     return NextResponse.json({ error: "date 參數格式須為 YYYY-MM-DD" }, { status: 400 });
   }
 
   await connectToDatabase();
-  const expenses = await Expense.find({ userId: session.userId, date }).sort({
+
+  if (projectId) {
+    const project = await Project.findOne({ _id: projectId, userId: session.userId });
+    if (!project) {
+      return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
+    }
+  }
+
+  const expenses = await Expense.find({ userId: session.userId, projectId, date }).sort({
     createdAt: -1,
   });
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
@@ -35,18 +45,28 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const text = body?.text;
+  const projectId = typeof body?.projectId === "string" && body.projectId ? body.projectId : null;
 
   if (typeof text !== "string" || !text.trim()) {
     return NextResponse.json({ error: "請提供有效的 text 欄位" }, { status: 400 });
   }
 
+  await connectToDatabase();
+
+  if (projectId) {
+    const project = await Project.findOne({ _id: projectId, userId: session.userId });
+    if (!project) {
+      return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
+    }
+  }
+
   try {
     const { summary, expenses } = await analyzeExpenseText(text);
 
-    await connectToDatabase();
     const saved = await Expense.insertMany(
       expenses.map((expense) => ({
         userId: session.userId,
+        projectId,
         rawText: text,
         ...expense,
       }))

@@ -2,6 +2,7 @@ import { Schema, models, model, Types } from "mongoose";
 
 export interface IExpense {
   userId: Types.ObjectId;
+  projectId: Types.ObjectId | null;
   rawText: string;
   amount: number;
   currency: string;
@@ -17,6 +18,9 @@ export interface IExpense {
 const ExpenseSchema = new Schema<IExpense>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    // null = the general, unfiled ledger (the original date-based behavior) —
+    // a project is an optional way to split expenses out, not a requirement.
+    projectId: { type: Schema.Types.ObjectId, ref: "Project", default: null },
     rawText: { type: String, required: true },
     amount: { type: Number, required: true },
     currency: { type: String, required: true, default: "TWD" },

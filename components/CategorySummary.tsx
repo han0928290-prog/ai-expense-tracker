@@ -8,17 +8,20 @@ type MonthSummary = { total: number; byCategory: CategoryAmount[] };
 
 export function CategorySummary({
   month,
+  projectId,
   refreshKey,
 }: {
   month: string;
+  projectId: string | null;
   refreshKey: number;
 }) {
   const [data, setData] = useState<MonthSummary | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    const projectQuery = projectId ? `&projectId=${projectId}` : "";
 
-    fetch(`/api/expenses/summary?month=${month}`, { cache: "no-store" })
+    fetch(`/api/expenses/summary?month=${month}${projectQuery}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((json) => {
         if (!cancelled) setData(json);
@@ -30,7 +33,7 @@ export function CategorySummary({
     return () => {
       cancelled = true;
     };
-  }, [month, refreshKey]);
+  }, [month, projectId, refreshKey]);
 
   return (
     <CategoryBreakdown

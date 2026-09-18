@@ -5,8 +5,10 @@ import { CategoryBreakdown } from "@/components/CategoryBreakdown";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { CategoryPieChart } from "@/components/CategoryPieChart";
 import { MonthlyTrend } from "@/components/MonthlyTrend";
+import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { toMonthKey } from "@/lib/date";
 import { ALL_CATEGORY, getCategoryColorVar } from "@/lib/categories";
+import { useProject } from "@/lib/project-context";
 
 type CategoryAmount = { category: string; amount: number };
 type MonthSummary = { total: number; byCategory: CategoryAmount[] };
@@ -28,6 +30,7 @@ function formatMonthLabel(monthKey: string): string {
 }
 
 export default function StatsPage() {
+  const { currentProjectId } = useProject();
   const [tab, setTab] = useState<"month" | "year">("month");
   const [month, setMonth] = useState(() => toMonthKey(new Date()));
   const [year, setYear] = useState(() => String(new Date().getFullYear()));
@@ -35,11 +38,14 @@ export default function StatsPage() {
   const [monthData, setMonthData] = useState<MonthSummary | null>(null);
   const [yearData, setYearData] = useState<YearSummary | null>(null);
 
+  const projectQuery = currentProjectId ? `&projectId=${currentProjectId}` : "";
   const categoryQuery = category === ALL_CATEGORY ? "" : `&category=${encodeURIComponent(category)}`;
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/expenses/summary?month=${month}${categoryQuery}`, { cache: "no-store" })
+    fetch(`/api/expenses/summary?month=${month}${projectQuery}${categoryQuery}`, {
+      cache: "no-store",
+    })
       .then((res) => res.json())
       .then((json) => {
         if (!cancelled) setMonthData(json);
@@ -47,11 +53,13 @@ export default function StatsPage() {
     return () => {
       cancelled = true;
     };
-  }, [month, categoryQuery]);
+  }, [month, projectQuery, categoryQuery]);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/expenses/summary?year=${year}${categoryQuery}`, { cache: "no-store" })
+    fetch(`/api/expenses/summary?year=${year}${projectQuery}${categoryQuery}`, {
+      cache: "no-store",
+    })
       .then((res) => res.json())
       .then((json) => {
         if (!cancelled) setYearData(json);
@@ -59,15 +67,16 @@ export default function StatsPage() {
     return () => {
       cancelled = true;
     };
-  }, [year, categoryQuery]);
+  }, [year, projectQuery, categoryQuery]);
 
   const isFiltered = category !== ALL_CATEGORY;
   const trendColorVar = isFiltered ? getCategoryColorVar(category) : undefined;
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-28 pt-6">
-      <header>
+      <header className="flex flex-col gap-3">
         <h1 className="text-xl font-bold text-ink">統計</h1>
+        <ProjectSwitcher />
       </header>
 
       <div className="flex rounded-full bg-app-accent p-1">
@@ -75,9 +84,7 @@ export default function StatsPage() {
           type="button"
           onClick={() => setTab("month")}
           className={`flex-1 rounded-full py-2 text-sm font-medium transition-colors ${
-            tab === "month"
-              ? "bg-card text-ink shadow-sm shadow-black/5"
-              : "text-ink-muted"
+            tab === "month" ? "bg-card text-ink shadow-sm shadow-black/5" : "text-ink-muted"
           }`}
         >
           本月統計
@@ -86,9 +93,7 @@ export default function StatsPage() {
           type="button"
           onClick={() => setTab("year")}
           className={`flex-1 rounded-full py-2 text-sm font-medium transition-colors ${
-            tab === "year"
-              ? "bg-card text-ink shadow-sm shadow-black/5"
-              : "text-ink-muted"
+            tab === "year" ? "bg-card text-ink shadow-sm shadow-black/5" : "text-ink-muted"
           }`}
         >
           本年統計
@@ -108,9 +113,7 @@ export default function StatsPage() {
             >
               ‹
             </button>
-            <p className="text-base font-medium text-ink">
-              {formatMonthLabel(month)}
-            </p>
+            <p className="text-base font-medium text-ink">{formatMonthLabel(month)}</p>
             <button
               type="button"
               onClick={() => setMonth((m) => shiftMonthKey(m, 1))}
