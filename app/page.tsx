@@ -82,16 +82,18 @@ export default function Home() {
   const month = selectedDate.slice(0, 7);
 
   return (
-    <div className="flex flex-col gap-4 px-4 pb-44 pt-6">
+    <div className="flex flex-col gap-4 px-4 pb-28 pt-6">
       <header className="flex flex-col gap-3">
         <div>
           <h1 className="text-xl font-bold text-ink">Hank的AI家庭記帳本</h1>
           <p className="mt-1 text-sm text-ink-muted">
-            用一句話描述你的花費，AI 會解析成結構化資料並存進 MongoDB。
+            用一句話描述你的花費，AI 會解析成結構化資料。
           </p>
         </div>
         <ProjectSwitcher />
       </header>
+
+      <AddExpenseBar projectId={currentProjectId} onAdded={() => setRefreshKey((k) => k + 1)} />
 
       <DateScroller selected={selectedDate} onSelect={setSelectedDate} />
 
@@ -149,8 +151,6 @@ export default function Home() {
       </section>
 
       <CategorySummary month={month} projectId={currentProjectId} refreshKey={refreshKey} />
-
-      <AddExpenseBar projectId={currentProjectId} onAdded={() => setRefreshKey((k) => k + 1)} />
     </div>
   );
 }
