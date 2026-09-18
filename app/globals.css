@@ -1,26 +1,78 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --app-bg: #f5f7fb;
+  --app-bg-accent: #eef3fc;
+  --card-bg: #ffffff;
+  --card-border: rgba(15, 23, 42, 0.07);
+  --ink: #10131c;
+  --ink-muted: #5b6072;
+  --ink-subtle: #98a0b3;
+  --accent: #2a78d6;
+  --accent-hover: #1c5cab;
+  --accent-foreground: #ffffff;
+  --accent-soft: #e8f0fc;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+
+  /* Categorical series — fixed hue order, validated colorblind-safe palette. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #4a3aa7;
+  --series-8: #e34948;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-app: var(--app-bg);
+  --color-app-accent: var(--app-bg-accent);
+  --color-card: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --app-bg: #0a0c12;
+    --app-bg-accent: #0d1220;
+    --card-bg: #151925;
+    --card-border: rgba(255, 255, 255, 0.08);
+    --ink: #f5f6fa;
+    --ink-muted: #a4aabf;
+    --ink-subtle: #6b7086;
+    --accent: #4c93e8;
+    --accent-hover: #6ba6ec;
+    --accent-foreground: #ffffff;
+    --accent-soft: rgba(76, 147, 232, 0.16);
+    --danger: #f87171;
+    --danger-soft: rgba(248, 113, 113, 0.16);
+
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--app-bg);
+  color: var(--ink);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
