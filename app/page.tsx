@@ -24,6 +24,8 @@ type SavedExpense = {
   updatedAt?: string;
 };
 
+type ViewMode = "day" | "range";
+
 function formatDateLabel(dateKey: string): string {
   const todayKey = toDateKey(new Date());
   const yesterday = new Date();
@@ -35,6 +37,11 @@ function formatDateLabel(dateKey: string): string {
 
   const [, m, d] = dateKey.split("-");
   return `${Number(m)}月${Number(d)}日`;
+}
+
+function formatShortDate(dateKey: string): string {
+  const [, m, d] = dateKey.split("-");
+  return `${Number(m)}/${Number(d)}`;
 }
 
 function wasEdited(expense: SavedExpense): boolean {
@@ -57,27 +64,37 @@ function formatTime(iso?: string): string {
 
 export default function Home() {
   const { currentProjectId } = useProject();
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [selectedDate, setSelectedDate] = useState(() => toDateKey(new Date()));
+  const [rangeStart, setRangeStart] = useState(() => toDateKey(new Date()));
+  const [rangeEnd, setRangeEnd] = useState(() => toDateKey(new Date()));
   const [result, setResult] = useState<{
-    date: string;
-    projectId: string | null;
+    key: string;
     expenses: SavedExpense[];
     total: number;
   } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [editingExpense, setEditingExpense] = useState<SavedExpense | null>(null);
 
+  const queryKey =
+    viewMode === "day"
+      ? `day:${selectedDate}:${currentProjectId ?? ""}`
+      : `range:${rangeStart}:${rangeEnd}:${currentProjectId ?? ""}`;
+
   useEffect(() => {
     let cancelled = false;
     const projectQuery = currentProjectId ? `&projectId=${currentProjectId}` : "";
+    const url =
+      viewMode === "day"
+        ? `/api/expenses?date=${selectedDate}${projectQuery}`
+        : `/api/expenses?startDate=${rangeStart}&endDate=${rangeEnd}${projectQuery}`;
 
-    fetch(`/api/expenses?date=${selectedDate}${projectQuery}`, { cache: "no-store" })
+    fetch(url, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return;
         setResult({
-          date: selectedDate,
-          projectId: currentProjectId,
+          key: queryKey,
           expenses: data.expenses || [],
           total: data.total || 0,
         });
@@ -86,12 +103,22 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDate, currentProjectId, refreshKey]);
+  }, [viewMode, selectedDate, rangeStart, rangeEnd, currentProjectId, refreshKey, queryKey]);
 
-  const loading = result?.date !== selectedDate || result?.projectId !== currentProjectId;
+  const loading = result?.key !== queryKey;
   const expenses = loading ? [] : result?.expenses ?? [];
-  const dayTotal = loading ? 0 : result?.total ?? 0;
-  const month = selectedDate.slice(0, 7);
+  const total = loading ? 0 : result?.total ?? 0;
+  const month = (viewMode === "day" ? selectedDate : rangeEnd).slice(0, 7);
+
+  function handleRangeStartChange(value: string) {
+    setRangeStart(value);
+    if (value > rangeEnd) setRangeEnd(value);
+  }
+
+  function handleRangeEndChange(value: string) {
+    setRangeEnd(value);
+    if (value < rangeStart) setRangeStart(value);
+  }
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-28 pt-6 md:px-0 md:pb-10">
@@ -109,15 +136,60 @@ export default function Home() {
 
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
         <div className="flex flex-col gap-4 md:min-w-0 md:flex-1">
-          <DateScroller selected={selectedDate} onSelect={setSelectedDate} />
+          <div className="flex rounded-full bg-app-accent p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode("day")}
+              className={`flex-1 rounded-full py-2 text-sm font-medium transition-colors ${
+                viewMode === "day"
+                  ? "bg-card text-ink shadow-sm shadow-black/5"
+                  : "text-ink-muted"
+              }`}
+            >
+              單日
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("range")}
+              className={`flex-1 rounded-full py-2 text-sm font-medium transition-colors ${
+                viewMode === "range"
+                  ? "bg-card text-ink shadow-sm shadow-black/5"
+                  : "text-ink-muted"
+              }`}
+            >
+              區間
+            </button>
+          </div>
+
+          {viewMode === "day" ? (
+            <DateScroller selected={selectedDate} onSelect={setSelectedDate} />
+          ) : (
+            <div className="flex items-center gap-2 rounded-2xl bg-card p-3 shadow-sm shadow-black/5 ring-1 ring-card-border">
+              <input
+                type="date"
+                value={rangeStart}
+                onChange={(e) => handleRangeStartChange(e.target.value)}
+                className="flex-1 rounded-xl border border-card-border bg-app px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-accent"
+              />
+              <span className="shrink-0 text-sm text-ink-subtle">至</span>
+              <input
+                type="date"
+                value={rangeEnd}
+                onChange={(e) => handleRangeEndChange(e.target.value)}
+                className="flex-1 rounded-xl border border-card-border bg-app px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-accent"
+              />
+            </div>
+          )}
 
           <section className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-sm font-medium text-ink-muted">
-                {formatDateLabel(selectedDate)}
+                {viewMode === "day"
+                  ? formatDateLabel(selectedDate)
+                  : `${formatShortDate(rangeStart)} - ${formatShortDate(rangeEnd)}`}
               </h2>
               <p className="text-sm font-semibold text-ink">
-                -{dayTotal.toLocaleString()} TWD
+                -{total.toLocaleString()} TWD
               </p>
             </div>
 
@@ -127,7 +199,7 @@ export default function Home() {
               </p>
             ) : expenses.length === 0 ? (
               <p className="rounded-2xl bg-card p-4 text-center text-sm text-ink-subtle shadow-sm shadow-black/5 ring-1 ring-card-border">
-                這天還沒有記帳紀錄
+                {viewMode === "day" ? "這天還沒有記帳紀錄" : "這段期間還沒有記帳紀錄"}
               </p>
             ) : (
               expenses.map((expense) => (
@@ -150,6 +222,7 @@ export default function Home() {
                     </p>
                   </div>
                   <p className="mt-1 pl-4 text-xs text-ink-muted">
+                    {viewMode === "range" && `${formatShortDate(expense.date)} · `}
                     {expense.category}
                     {expense.merchant ? ` · ${expense.merchant}` : ""}
                     {expense.note ? ` · ${expense.note}` : ""}
