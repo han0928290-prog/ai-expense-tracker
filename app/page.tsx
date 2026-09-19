@@ -7,7 +7,7 @@ import { CategorySummary } from "@/components/CategorySummary";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { ExpenseEditSheet } from "@/components/ExpenseEditSheet";
 import { getCategoryColorVar } from "@/lib/categories";
-import { toDateKey } from "@/lib/date";
+import { toDateKey, formatShortDate } from "@/lib/date";
 import { useProject } from "@/lib/project-context";
 
 type SavedExpense = {
@@ -39,11 +39,6 @@ function formatDateLabel(dateKey: string): string {
   return `${Number(m)}月${Number(d)}日`;
 }
 
-function formatShortDate(dateKey: string): string {
-  const [, m, d] = dateKey.split("-");
-  return `${Number(m)}/${Number(d)}`;
-}
-
 function wasEdited(expense: SavedExpense): boolean {
   return Boolean(
     expense.updatedAt && expense.createdAt && expense.updatedAt !== expense.createdAt
@@ -63,7 +58,7 @@ function formatTime(iso?: string): string {
 }
 
 export default function Home() {
-  const { currentProjectId } = useProject();
+  const { currentProjectId, currentProject } = useProject();
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [selectedDate, setSelectedDate] = useState(() => toDateKey(new Date()));
   const [rangeStart, setRangeStart] = useState(() => toDateKey(new Date()));
@@ -75,6 +70,24 @@ export default function Home() {
   } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [editingExpense, setEditingExpense] = useState<SavedExpense | null>(null);
+
+  // A project's stats period is decided when it's created — default straight to it
+  // whenever the selected project (or its dates) change. Adjusted during render,
+  // not in an effect, since this is state derived from a prop-like value.
+  const projectRangeKey = currentProject
+    ? `${currentProject._id}:${currentProject.startDate}:${currentProject.endDate}`
+    : "general";
+  const [appliedRangeKey, setAppliedRangeKey] = useState(projectRangeKey);
+  if (projectRangeKey !== appliedRangeKey) {
+    setAppliedRangeKey(projectRangeKey);
+    if (currentProject?.startDate && currentProject?.endDate) {
+      setRangeStart(currentProject.startDate);
+      setRangeEnd(currentProject.endDate);
+      setViewMode("range");
+    } else {
+      setViewMode("day");
+    }
+  }
 
   const queryKey =
     viewMode === "day"

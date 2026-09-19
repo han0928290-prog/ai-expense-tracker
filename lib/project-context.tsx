@@ -8,7 +8,12 @@ import {
   useState,
 } from "react";
 
-export type Project = { _id: string; name: string };
+export type Project = {
+  _id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+};
 
 type ProjectContextValue = {
   projects: Project[];
@@ -16,7 +21,15 @@ type ProjectContextValue = {
   currentProject: Project | null;
   loading: boolean;
   selectProject: (id: string | null) => void;
-  createProject: (name: string) => Promise<{ error?: string }>;
+  createProject: (
+    name: string,
+    startDate: string,
+    endDate: string
+  ) => Promise<{ error?: string }>;
+  updateProject: (
+    id: string,
+    updates: { name: string; startDate: string; endDate: string }
+  ) => Promise<{ error?: string }>;
 };
 
 const STORAGE_KEY = "currentProjectId";
@@ -72,11 +85,15 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function createProject(name: string): Promise<{ error?: string }> {
+  async function createProject(
+    name: string,
+    startDate: string,
+    endDate: string
+  ): Promise<{ error?: string }> {
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, startDate, endDate }),
     });
     const data = await res.json().catch(() => null);
 
@@ -89,11 +106,38 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     return {};
   }
 
+  async function updateProject(
+    id: string,
+    updates: { name: string; startDate: string; endDate: string }
+  ): Promise<{ error?: string }> {
+    const res = await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      return { error: data?.error || "更新專案失敗" };
+    }
+
+    await loadProjects();
+    return {};
+  }
+
   const currentProject = projects.find((p) => p._id === currentProjectId) ?? null;
 
   return (
     <ProjectContext.Provider
-      value={{ projects, currentProjectId, currentProject, loading, selectProject, createProject }}
+      value={{
+        projects,
+        currentProjectId,
+        currentProject,
+        loading,
+        selectProject,
+        createProject,
+        updateProject,
+      }}
     >
       {children}
     </ProjectContext.Provider>
