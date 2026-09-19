@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { BottomNav } from "@/components/BottomNav";
+import { SidebarNav } from "@/components/SidebarNav";
 import { ProjectProvider } from "@/lib/project-context";
 import "./globals.css";
 
@@ -27,7 +28,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full bg-app">
         <ProjectProvider>
-          <div className="mx-auto min-h-full max-w-md bg-app">{children}</div>
+          <div className="mx-auto flex min-h-full w-full max-w-md bg-app md:max-w-3xl md:gap-6 md:px-6 lg:max-w-6xl">
+            <SidebarNav />
+            <div className="min-w-0 flex-1">{children}</div>
+          </div>
           <BottomNav />
         </ProjectProvider>
       </body>

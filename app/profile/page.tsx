@@ -26,7 +26,7 @@ export default function ProfilePage() {
   const initial = user?.name?.trim()?.[0]?.toUpperCase() ?? "?";
 
   return (
-    <div className="flex flex-col gap-4 px-4 pb-28 pt-6">
+    <div className="flex flex-col gap-4 px-4 pb-28 pt-6 md:mx-auto md:max-w-md md:px-0 md:pb-10">
       <header>
         <h1 className="text-xl font-bold text-ink">我的</h1>
       </header>

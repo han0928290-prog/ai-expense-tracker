@@ -73,7 +73,7 @@ export default function StatsPage() {
   const trendColorVar = isFiltered ? getCategoryColorVar(category) : undefined;
 
   return (
-    <div className="flex flex-col gap-4 px-4 pb-28 pt-6">
+    <div className="flex flex-col gap-4 px-4 pb-28 pt-6 md:px-0 md:pb-10">
       <header className="flex flex-col gap-3">
         <h1 className="text-xl font-bold text-ink">統計</h1>
         <ProjectSwitcher />
@@ -139,7 +139,7 @@ export default function StatsPage() {
               </p>
             </div>
           ) : (
-            <>
+            <div className="flex flex-col gap-4 md:grid md:grid-cols-2">
               <CategoryBreakdown
                 total={monthData?.total ?? 0}
                 byCategory={monthData?.byCategory ?? []}
@@ -148,7 +148,7 @@ export default function StatsPage() {
                 total={monthData?.total ?? 0}
                 byCategory={monthData?.byCategory ?? []}
               />
-            </>
+            </div>
           )}
         </>
       ) : (
@@ -188,7 +188,7 @@ export default function StatsPage() {
               </p>
             </div>
           ) : (
-            <>
+            <div className="flex flex-col gap-4 md:grid md:grid-cols-2">
               <CategoryBreakdown
                 total={yearData?.total ?? 0}
                 byCategory={yearData?.byCategory ?? []}
@@ -197,7 +197,7 @@ export default function StatsPage() {
                 total={yearData?.total ?? 0}
                 byCategory={yearData?.byCategory ?? []}
               />
-            </>
+            </div>
           )}
 
           <MonthlyTrend

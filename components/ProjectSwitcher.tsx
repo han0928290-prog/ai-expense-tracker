@@ -53,11 +53,11 @@ export function ProjectSwitcher() {
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-end bg-black/40"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 md:items-center"
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full rounded-t-3xl bg-card p-4 pb-8"
+            className="w-full max-w-md rounded-t-3xl bg-card p-4 pb-8 md:rounded-3xl md:pb-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-card-border" />

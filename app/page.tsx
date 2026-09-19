@@ -5,6 +5,7 @@ import { DateScroller } from "@/components/DateScroller";
 import { AddExpenseBar } from "@/components/AddExpenseBar";
 import { CategorySummary } from "@/components/CategorySummary";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
+import { ExpenseEditSheet } from "@/components/ExpenseEditSheet";
 import { getCategoryColorVar } from "@/lib/categories";
 import { toDateKey } from "@/lib/date";
 import { useProject } from "@/lib/project-context";
@@ -54,6 +55,7 @@ export default function Home() {
     total: number;
   } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [editingExpense, setEditingExpense] = useState<SavedExpense | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,7 +84,7 @@ export default function Home() {
   const month = selectedDate.slice(0, 7);
 
   return (
-    <div className="flex flex-col gap-4 px-4 pb-28 pt-6">
+    <div className="flex flex-col gap-4 px-4 pb-28 pt-6 md:px-0 md:pb-10">
       <header className="flex flex-col gap-3">
         <div>
           <h1 className="text-xl font-bold text-ink">Hank的AI家庭記帳本</h1>
@@ -95,62 +97,79 @@ export default function Home() {
 
       <AddExpenseBar projectId={currentProjectId} onAdded={() => setRefreshKey((k) => k + 1)} />
 
-      <DateScroller selected={selectedDate} onSelect={setSelectedDate} />
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
+        <div className="flex flex-col gap-4 md:min-w-0 md:flex-1">
+          <DateScroller selected={selectedDate} onSelect={setSelectedDate} />
 
-      <section className="flex flex-col gap-2">
-        <div className="flex items-baseline justify-between px-1">
-          <h2 className="text-sm font-medium text-ink-muted">
-            {formatDateLabel(selectedDate)}
-          </h2>
-          <p className="text-sm font-semibold text-ink">
-            -{dayTotal.toLocaleString()} TWD
-          </p>
+          <section className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between px-1">
+              <h2 className="text-sm font-medium text-ink-muted">
+                {formatDateLabel(selectedDate)}
+              </h2>
+              <p className="text-sm font-semibold text-ink">
+                -{dayTotal.toLocaleString()} TWD
+              </p>
+            </div>
+
+            {loading ? (
+              <p className="rounded-2xl bg-card p-4 text-center text-sm text-ink-subtle shadow-sm shadow-black/5 ring-1 ring-card-border">
+                載入中...
+              </p>
+            ) : expenses.length === 0 ? (
+              <p className="rounded-2xl bg-card p-4 text-center text-sm text-ink-subtle shadow-sm shadow-black/5 ring-1 ring-card-border">
+                這天還沒有記帳紀錄
+              </p>
+            ) : (
+              expenses.map((expense) => (
+                <button
+                  key={expense._id}
+                  type="button"
+                  onClick={() => setEditingExpense(expense)}
+                  className="w-full rounded-2xl bg-card p-4 text-left shadow-sm shadow-black/5 ring-1 ring-card-border"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: getCategoryColorVar(expense.category) }}
+                      />
+                      <p className="font-medium text-ink">{expense.item}</p>
+                    </div>
+                    <p className="shrink-0 font-semibold text-ink">
+                      -{expense.amount.toLocaleString()} {expense.currency}
+                    </p>
+                  </div>
+                  <p className="mt-1 pl-4 text-xs text-ink-muted">
+                    {expense.category}
+                    {expense.merchant ? ` · ${expense.merchant}` : ""}
+                    {expense.note ? ` · ${expense.note}` : ""}
+                  </p>
+                  {(expense.authorName || expense.createdAt) && (
+                    <p className="mt-1 pl-4 text-[11px] text-ink-subtle">
+                      {expense.authorName && `由 ${expense.authorName} 記錄`}
+                      {expense.authorName && expense.createdAt ? " · " : ""}
+                      {formatTime(expense.createdAt)}
+                    </p>
+                  )}
+                </button>
+              ))
+            )}
+          </section>
         </div>
 
-        {loading ? (
-          <p className="rounded-2xl bg-card p-4 text-center text-sm text-ink-subtle shadow-sm shadow-black/5 ring-1 ring-card-border">
-            載入中...
-          </p>
-        ) : expenses.length === 0 ? (
-          <p className="rounded-2xl bg-card p-4 text-center text-sm text-ink-subtle shadow-sm shadow-black/5 ring-1 ring-card-border">
-            這天還沒有記帳紀錄
-          </p>
-        ) : (
-          expenses.map((expense) => (
-            <div
-              key={expense._id}
-              className="rounded-2xl bg-card p-4 shadow-sm shadow-black/5 ring-1 ring-card-border"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: getCategoryColorVar(expense.category) }}
-                  />
-                  <p className="font-medium text-ink">{expense.item}</p>
-                </div>
-                <p className="shrink-0 font-semibold text-ink">
-                  -{expense.amount.toLocaleString()} {expense.currency}
-                </p>
-              </div>
-              <p className="mt-1 pl-4 text-xs text-ink-muted">
-                {expense.category}
-                {expense.merchant ? ` · ${expense.merchant}` : ""}
-                {expense.note ? ` · ${expense.note}` : ""}
-              </p>
-              {(expense.authorName || expense.createdAt) && (
-                <p className="mt-1 pl-4 text-[11px] text-ink-subtle">
-                  {expense.authorName && `由 ${expense.authorName} 記錄`}
-                  {expense.authorName && expense.createdAt ? " · " : ""}
-                  {formatTime(expense.createdAt)}
-                </p>
-              )}
-            </div>
-          ))
-        )}
-      </section>
+        <div className="md:w-80 md:shrink-0">
+          <CategorySummary month={month} projectId={currentProjectId} refreshKey={refreshKey} />
+        </div>
+      </div>
 
-      <CategorySummary month={month} projectId={currentProjectId} refreshKey={refreshKey} />
+      {editingExpense && (
+        <ExpenseEditSheet
+          expense={editingExpense}
+          onClose={() => setEditingExpense(null)}
+          onSaved={() => setRefreshKey((k) => k + 1)}
+          onDeleted={() => setRefreshKey((k) => k + 1)}
+        />
+      )}
     </div>
   );
 }
