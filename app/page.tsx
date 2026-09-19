@@ -21,6 +21,7 @@ type SavedExpense = {
   note?: string;
   authorName?: string;
   createdAt?: string;
+  updatedAt?: string;
 };
 
 function formatDateLabel(dateKey: string): string {
@@ -34,6 +35,12 @@ function formatDateLabel(dateKey: string): string {
 
   const [, m, d] = dateKey.split("-");
   return `${Number(m)}月${Number(d)}日`;
+}
+
+function wasEdited(expense: SavedExpense): boolean {
+  return Boolean(
+    expense.updatedAt && expense.createdAt && expense.updatedAt !== expense.createdAt
+  );
 }
 
 function formatTime(iso?: string): string {
@@ -146,9 +153,10 @@ export default function Home() {
                   </p>
                   {(expense.authorName || expense.createdAt) && (
                     <p className="mt-1 pl-4 text-[11px] text-ink-subtle">
-                      {expense.authorName && `由 ${expense.authorName} 記錄`}
+                      {expense.authorName &&
+                        `由 ${expense.authorName} ${wasEdited(expense) ? "編輯" : "記錄"}`}
                       {expense.authorName && expense.createdAt ? " · " : ""}
-                      {formatTime(expense.createdAt)}
+                      {formatTime(wasEdited(expense) ? expense.updatedAt : expense.createdAt)}
                     </p>
                   )}
                 </button>
