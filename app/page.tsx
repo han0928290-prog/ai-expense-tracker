@@ -45,11 +45,14 @@ function wasEdited(expense: SavedExpense): boolean {
 
 function formatTime(iso?: string): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleTimeString("zh-TW", {
+  const d = new Date(iso);
+  const datePart = `${d.getMonth() + 1}月${d.getDate()}日`;
+  const timePart = d.toLocaleTimeString("zh-TW", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   });
+  return `${datePart} ${timePart}`;
 }
 
 export default function Home() {
