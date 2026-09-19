@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { getCurrentSession } from "@/lib/auth/server";
 import Expense from "@/models/Expense";
+import Project from "@/models/Project";
 import { CATEGORIES } from "@/lib/categories";
+import { formatShortDate } from "@/lib/date";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -41,6 +43,24 @@ export async function PATCH(
     existing.note = body.note.trim();
   }
   if (typeof body?.date === "string" && DATE_KEY_PATTERN.test(body.date)) {
+    // An entry filed under a project must stay inside that project's period.
+    if (existing.projectId) {
+      const project = await Project.findById(existing.projectId);
+      if (
+        project &&
+        ((project.startDate && body.date < project.startDate) ||
+          (project.endDate && body.date > project.endDate))
+      ) {
+        return NextResponse.json(
+          {
+            error: `日期必須在專案期間（${formatShortDate(project.startDate)} - ${formatShortDate(
+              project.endDate
+            )}）內`,
+          },
+          { status: 400 }
+        );
+      }
+    }
     existing.date = body.date;
   }
 

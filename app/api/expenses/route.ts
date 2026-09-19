@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { analyzeExpenseText } from "@/lib/openai";
 import { getCurrentSession } from "@/lib/auth/server";
-import { clampToProject } from "@/lib/date";
+import { clampToProject, formatShortDate } from "@/lib/date";
 import Expense from "@/models/Expense";
 import Project from "@/models/Project";
 import { getUserNameMap, withAuthors } from "@/lib/user-names";
@@ -104,6 +104,27 @@ export async function POST(request: NextRequest) {
   try {
     const { summary, expenses } = await analyzeExpenseText(text);
 
+    // A project only accepts entries dated inside its own period.
+    const range: ProjectRange | null = project;
+    if (range?.startDate || range?.endDate) {
+      const outside = expenses.filter(
+        (e) =>
+          (range.startDate && e.date < range.startDate) ||
+          (range.endDate && e.date > range.endDate)
+      );
+      if (outside.length > 0) {
+        const dates = Array.from(new Set(outside.map((e) => formatShortDate(e.date))));
+        return NextResponse.json(
+          {
+            error: `日期 ${dates.join("、")} 不在專案期間（${formatShortDate(
+              range.startDate ?? ""
+            )} - ${formatShortDate(range.endDate ?? "")}）內，請在文字裡寫明期間內的日期`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     const saved = await Expense.insertMany(
       expenses.map((expense) => ({
         userId: session.userId,
@@ -114,15 +135,7 @@ export async function POST(request: NextRequest) {
       }))
     );
 
-    const outOfRange = project
-      ? expenses.filter(
-          (e) =>
-            (project?.startDate && e.date < project.startDate) ||
-            (project?.endDate && e.date > project.endDate)
-        ).length
-      : 0;
-
-    return NextResponse.json({ summary, expenses: saved, outOfRange }, { status: 201 });
+    return NextResponse.json({ summary, expenses: saved }, { status: 201 });
   } catch (error) {
     console.error("Failed to analyze/save expense:", error);
     const message = error instanceof Error ? error.message : "未知錯誤";

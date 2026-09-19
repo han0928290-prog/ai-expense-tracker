@@ -19,11 +19,15 @@ export type EditableExpense = {
 
 export function ExpenseEditSheet({
   expense,
+  minDate,
+  maxDate,
   onClose,
   onSaved,
   onDeleted,
 }: {
   expense: EditableExpense;
+  minDate?: string;
+  maxDate?: string;
   onClose: () => void;
   onSaved: () => void;
   onDeleted: () => void;
@@ -155,6 +159,8 @@ export function ExpenseEditSheet({
             value={date}
             onChange={(e) => setDate(e.target.value)}
             type="date"
+            min={minDate}
+            max={maxDate}
             className="rounded-xl border border-card-border bg-app px-4 py-2.5 text-sm text-ink outline-none transition-colors focus:border-accent"
           />
 

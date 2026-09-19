@@ -265,6 +265,8 @@ export default function Home() {
       {editingExpense && (
         <ExpenseEditSheet
           expense={editingExpense}
+          minDate={currentProject?.startDate}
+          maxDate={currentProject?.endDate}
           onClose={() => setEditingExpense(null)}
           onSaved={() => setRefreshKey((k) => k + 1)}
           onDeleted={() => setRefreshKey((k) => k + 1)}

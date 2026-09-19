@@ -36,11 +36,7 @@ export function AddExpenseBar({
         throw new Error(data.error || "發生錯誤");
       }
 
-      setSummary(
-        data.outOfRange
-          ? `${data.summary}（其中 ${data.outOfRange} 筆不在專案期間內，不會被統計）`
-          : data.summary
-      );
+      setSummary(data.summary);
       setText("");
       onAdded();
     } catch (err) {

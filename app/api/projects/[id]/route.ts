@@ -39,6 +39,18 @@ export async function PATCH(
     return NextResponse.json({ error: "起始日期不能晚於結束日期" }, { status: 400 });
   }
 
+  // The new period must still cover every entry already filed under this project.
+  const outside = await Expense.countDocuments({
+    projectId: id,
+    $or: [{ date: { $lt: nextStart } }, { date: { $gt: nextEnd } }],
+  });
+  if (outside > 0) {
+    return NextResponse.json(
+      { error: `專案內有 ${outside} 筆記帳不在新的期間內，請先調整或刪除那些記帳` },
+      { status: 409 }
+    );
+  }
+
   existing.name = nextName;
   existing.startDate = nextStart;
   existing.endDate = nextEnd;
