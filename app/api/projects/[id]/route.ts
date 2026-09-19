@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { getCurrentSession } from "@/lib/auth/server";
 import Project from "@/models/Project";
+import Expense from "@/models/Expense";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -44,4 +45,29 @@ export async function PATCH(
   await existing.save();
 
   return NextResponse.json({ project: existing });
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  context: RouteContext<"/api/projects/[id]">
+) {
+  const session = await getCurrentSession();
+  if (!session) {
+    return NextResponse.json({ error: "請先登入" }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+
+  await connectToDatabase();
+
+  const existing = await Project.findOne({ _id: id, userId: session.userId });
+  if (!existing) {
+    return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
+  }
+
+  // Expenses belong to the project, so they go with it.
+  const removed = await Expense.deleteMany({ userId: session.userId, projectId: id });
+  await existing.deleteOne();
+
+  return NextResponse.json({ ok: true, deletedExpenses: removed.deletedCount });
 }

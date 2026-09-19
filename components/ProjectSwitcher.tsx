@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useProject } from "@/lib/project-context";
-import { toDateKey, formatShortDate } from "@/lib/date";
+import { toDateKey, formatShortDate, formatDateTime, wasEdited } from "@/lib/date";
 import { FolderIcon, ChevronDownIcon, CheckIcon, EditIcon } from "@/components/icons";
 
 const GENERAL_LABEL = "日常記帳";
@@ -16,6 +16,7 @@ export function ProjectSwitcher() {
     selectProject,
     createProject,
     updateProject,
+    deleteProject,
   } = useProject();
   const [open, setOpen] = useState(false);
 
@@ -31,6 +32,8 @@ export function ProjectSwitcher() {
   const [editEnd, setEditEnd] = useState("");
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   function openSheet() {
     setOpen(true);
@@ -65,6 +68,24 @@ export function ProjectSwitcher() {
     setEditStart(p.startDate || toDateKey(new Date()));
     setEditEnd(p.endDate || toDateKey(new Date()));
     setEditError(null);
+    setConfirmingDelete(false);
+  }
+
+  async function handleDelete() {
+    if (!editingId || deleting) return;
+
+    setDeleting(true);
+    setEditError(null);
+
+    const result = await deleteProject(editingId);
+
+    if (result.error) {
+      setEditError(result.error);
+    } else {
+      setEditingId(null);
+    }
+    setDeleting(false);
+    setConfirmingDelete(false);
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -195,6 +216,40 @@ export function ProjectSwitcher() {
                           {saving ? "儲存中..." : "儲存"}
                         </button>
                       </div>
+                      <div className="border-t border-card-border pt-2">
+                        {confirmingDelete ? (
+                          <div className="flex flex-col gap-2">
+                            <p className="text-sm text-ink-muted">
+                              確定刪除「{p.name}」？會一併刪除專案內 {p.expenseCount ?? 0} 筆記帳，無法復原。
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingDelete(false)}
+                                className="flex-1 rounded-xl border border-card-border py-2 text-sm font-medium text-ink-muted"
+                              >
+                                取消
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleDelete}
+                                disabled={deleting}
+                                className="flex-1 rounded-xl bg-danger py-2 text-sm font-semibold text-white disabled:opacity-50"
+                              >
+                                {deleting ? "刪除中..." : "確定刪除"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingDelete(true)}
+                            className="w-full rounded-xl border border-danger/30 bg-danger-soft py-2 text-sm font-semibold text-danger"
+                          >
+                            刪除這個專案
+                          </button>
+                        )}
+                      </div>
                     </form>
                   );
                 }
@@ -221,6 +276,15 @@ export function ProjectSwitcher() {
                       {p.startDate && p.endDate && (
                         <span className="text-xs font-normal text-ink-subtle">
                           {formatShortDate(p.startDate)} - {formatShortDate(p.endDate)}
+                        </span>
+                      )}
+                      {p.createdAt && (
+                        <span className="text-[11px] font-normal text-ink-subtle">
+                          {p.authorName && `由 ${p.authorName} `}
+                          {wasEdited(p.createdAt, p.updatedAt) ? "編輯" : "建立"} ·{" "}
+                          {formatDateTime(
+                            wasEdited(p.createdAt, p.updatedAt) ? p.updatedAt : p.createdAt
+                          )}
                         </span>
                       )}
                     </button>

@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { analyzeExpenseText } from "@/lib/openai";
 import { getCurrentSession } from "@/lib/auth/server";
+import { clampToProject } from "@/lib/date";
 import Expense from "@/models/Expense";
 import Project from "@/models/Project";
 import User from "@/models/User";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+type ProjectRange = { startDate?: string; endDate?: string };
 
 export async function GET(request: NextRequest) {
   const session = await getCurrentSession();
@@ -19,13 +22,15 @@ export async function GET(request: NextRequest) {
   const endDate = request.nextUrl.searchParams.get("endDate");
   const projectId = request.nextUrl.searchParams.get("projectId") || null;
 
-  let dateQuery: string | { $gte: string; $lte: string };
+  let rangeStart: string;
+  let rangeEnd: string;
 
   if (date) {
     if (!DATE_KEY_PATTERN.test(date)) {
       return NextResponse.json({ error: "date 參數格式須為 YYYY-MM-DD" }, { status: 400 });
     }
-    dateQuery = date;
+    rangeStart = date;
+    rangeEnd = date;
   } else if (startDate && endDate) {
     if (!DATE_KEY_PATTERN.test(startDate) || !DATE_KEY_PATTERN.test(endDate)) {
       return NextResponse.json(
@@ -36,7 +41,8 @@ export async function GET(request: NextRequest) {
     if (startDate > endDate) {
       return NextResponse.json({ error: "起始日期不能晚於結束日期" }, { status: 400 });
     }
-    dateQuery = { $gte: startDate, $lte: endDate };
+    rangeStart = startDate;
+    rangeEnd = endDate;
   } else {
     return NextResponse.json(
       { error: "請提供 date 或 startDate/endDate 參數" },
@@ -46,15 +52,19 @@ export async function GET(request: NextRequest) {
 
   await connectToDatabase();
 
+  let project: ProjectRange | null = null;
   if (projectId) {
-    const project = await Project.findOne({ _id: projectId, userId: session.userId });
+    project = await Project.findOne({ _id: projectId, userId: session.userId });
     if (!project) {
       return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
     }
   }
 
+  // A project only counts its own period.
+  const { start, end } = clampToProject(rangeStart, rangeEnd, project);
+
   const [expenses, author] = await Promise.all([
-    Expense.find({ userId: session.userId, projectId, date: dateQuery })
+    Expense.find({ userId: session.userId, projectId, date: { $gte: start, $lte: end } })
       .sort({ date: -1, createdAt: -1 })
       .lean(),
     User.findById(session.userId).select("name").lean(),
@@ -84,8 +94,9 @@ export async function POST(request: NextRequest) {
 
   await connectToDatabase();
 
+  let project: ProjectRange | null = null;
   if (projectId) {
-    const project = await Project.findOne({ _id: projectId, userId: session.userId });
+    project = await Project.findOne({ _id: projectId, userId: session.userId });
     if (!project) {
       return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
     }
@@ -103,7 +114,15 @@ export async function POST(request: NextRequest) {
       }))
     );
 
-    return NextResponse.json({ summary, expenses: saved }, { status: 201 });
+    const outOfRange = project
+      ? expenses.filter(
+          (e) =>
+            (project?.startDate && e.date < project.startDate) ||
+            (project?.endDate && e.date > project.endDate)
+        ).length
+      : 0;
+
+    return NextResponse.json({ summary, expenses: saved, outOfRange }, { status: 201 });
   } catch (error) {
     console.error("Failed to analyze/save expense:", error);
     const message = error instanceof Error ? error.message : "未知錯誤";

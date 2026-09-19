@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { getCurrentSession } from "@/lib/auth/server";
 import Expense from "@/models/Expense";
 import Project from "@/models/Project";
+import { clampToProject } from "@/lib/date";
 
 const MONTH_KEY_PATTERN = /^\d{4}-\d{2}$/;
 const YEAR_KEY_PATTERN = /^\d{4}$/;
@@ -37,13 +38,6 @@ function summarizeByMonth(expenses: { date: string; amount: number }[], year: st
   }));
 }
 
-function nextMonthKey(monthKey: string) {
-  const [year, month] = monthKey.split("-").map(Number);
-  const nextMonth = month === 12 ? 1 : month + 1;
-  const nextYear = month === 12 ? year + 1 : year;
-  return `${nextYear}-${String(nextMonth).padStart(2, "0")}`;
-}
-
 export async function GET(request: NextRequest) {
   const session = await getCurrentSession();
   if (!session) {
@@ -61,8 +55,9 @@ export async function GET(request: NextRequest) {
 
   await connectToDatabase();
 
+  let project: { startDate?: string; endDate?: string } | null = null;
   if (projectId) {
-    const project = await Project.findOne({ _id: projectId, userId: session.userId });
+    project = await Project.findOne({ _id: projectId, userId: session.userId });
     if (!project) {
       return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
     }
@@ -73,12 +68,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "month 參數格式須為 YYYY-MM" }, { status: 400 });
     }
 
-    const start = `${month}-01`;
-    const end = `${nextMonthKey(month)}-01`;
+    const { start, end } = clampToProject(`${month}-01`, `${month}-31`, project);
     const expenses = await Expense.find({
       userId: session.userId,
       projectId,
-      date: { $gte: start, $lt: end },
+      date: { $gte: start, $lte: end },
       ...(category ? { category } : {}),
     });
     const byCategory = summarizeByCategory(expenses);
@@ -91,12 +85,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "year 參數格式須為 YYYY" }, { status: 400 });
   }
 
-  const start = `${year}-01-01`;
-  const end = `${Number(year) + 1}-01-01`;
+  const { start, end } = clampToProject(`${year}-01-01`, `${year}-12-31`, project);
   const expenses = await Expense.find({
     userId: session.userId,
     projectId,
-    date: { $gte: start, $lt: end },
+    date: { $gte: start, $lte: end },
     ...(category ? { category } : {}),
   });
   const byCategory = summarizeByCategory(expenses);

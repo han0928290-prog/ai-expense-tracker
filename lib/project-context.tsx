@@ -13,6 +13,10 @@ export type Project = {
   name: string;
   startDate: string;
   endDate: string;
+  authorName?: string;
+  expenseCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type ProjectContextValue = {
@@ -30,6 +34,7 @@ type ProjectContextValue = {
     id: string,
     updates: { name: string; startDate: string; endDate: string }
   ) => Promise<{ error?: string }>;
+  deleteProject: (id: string) => Promise<{ error?: string }>;
 };
 
 const STORAGE_KEY = "currentProjectId";
@@ -125,6 +130,21 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     return {};
   }
 
+  async function deleteProject(id: string): Promise<{ error?: string }> {
+    const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      return { error: data?.error || "刪除專案失敗" };
+    }
+
+    if (id === currentProjectId) {
+      selectProject(null);
+    }
+    await loadProjects();
+    return {};
+  }
+
   const currentProject = projects.find((p) => p._id === currentProjectId) ?? null;
 
   return (
@@ -137,6 +157,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         selectProject,
         createProject,
         updateProject,
+        deleteProject,
       }}
     >
       {children}

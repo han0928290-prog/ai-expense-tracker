@@ -7,7 +7,7 @@ import { CategorySummary } from "@/components/CategorySummary";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { ExpenseEditSheet } from "@/components/ExpenseEditSheet";
 import { getCategoryColorVar } from "@/lib/categories";
-import { toDateKey, formatShortDate } from "@/lib/date";
+import { toDateKey, formatShortDate, formatDateTime, wasEdited } from "@/lib/date";
 import { useProject } from "@/lib/project-context";
 
 type SavedExpense = {
@@ -37,24 +37,6 @@ function formatDateLabel(dateKey: string): string {
 
   const [, m, d] = dateKey.split("-");
   return `${Number(m)}月${Number(d)}日`;
-}
-
-function wasEdited(expense: SavedExpense): boolean {
-  return Boolean(
-    expense.updatedAt && expense.createdAt && expense.updatedAt !== expense.createdAt
-  );
-}
-
-function formatTime(iso?: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const datePart = `${d.getMonth() + 1}月${d.getDate()}日`;
-  const timePart = d.toLocaleTimeString("zh-TW", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  return `${datePart} ${timePart}`;
 }
 
 export default function Home() {
@@ -243,9 +225,15 @@ export default function Home() {
                   {(expense.authorName || expense.createdAt) && (
                     <p className="mt-1 pl-4 text-[11px] text-ink-subtle">
                       {expense.authorName &&
-                        `由 ${expense.authorName} ${wasEdited(expense) ? "編輯" : "記錄"}`}
+                        `由 ${expense.authorName} ${
+                          wasEdited(expense.createdAt, expense.updatedAt) ? "編輯" : "記錄"
+                        }`}
                       {expense.authorName && expense.createdAt ? " · " : ""}
-                      {formatTime(wasEdited(expense) ? expense.updatedAt : expense.createdAt)}
+                      {formatDateTime(
+                        wasEdited(expense.createdAt, expense.updatedAt)
+                          ? expense.updatedAt
+                          : expense.createdAt
+                      )}
                     </p>
                   )}
                 </button>
