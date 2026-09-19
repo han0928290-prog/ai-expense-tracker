@@ -5,7 +5,7 @@ import { getCurrentSession } from "@/lib/auth/server";
 import { clampToProject } from "@/lib/date";
 import Expense from "@/models/Expense";
 import Project from "@/models/Project";
-import User from "@/models/User";
+import { getUserNameMap, withAuthors } from "@/lib/user-names";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
   let project: ProjectRange | null = null;
   if (projectId) {
-    project = await Project.findOne({ _id: projectId, userId: session.userId });
+    project = await Project.findById(projectId);
     if (!project) {
       return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
     }
@@ -63,17 +63,13 @@ export async function GET(request: NextRequest) {
   // A project only counts its own period.
   const { start, end } = clampToProject(rangeStart, rangeEnd, project);
 
-  const [expenses, author] = await Promise.all([
-    Expense.find({ userId: session.userId, projectId, date: { $gte: start, $lte: end } })
-      .sort({ date: -1, createdAt: -1 })
-      .lean(),
-    User.findById(session.userId).select("name").lean(),
-  ]);
+  // The ledger is shared: everyone sees everyone's entries.
+  const expenses = await Expense.find({ projectId, date: { $gte: start, $lte: end } })
+    .sort({ date: -1, createdAt: -1 })
+    .lean();
+  const names = await getUserNameMap(expenses.flatMap((e) => [e.userId, e.updatedBy]));
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const withAuthor = expenses.map((expense) => ({
-    ...expense,
-    authorName: author?.name ?? "",
-  }));
+  const withAuthor = expenses.map((expense) => withAuthors(expense, names));
 
   return NextResponse.json({ date, startDate, endDate, expenses: withAuthor, total });
 }
@@ -96,7 +92,7 @@ export async function POST(request: NextRequest) {
 
   let project: ProjectRange | null = null;
   if (projectId) {
-    project = await Project.findOne({ _id: projectId, userId: session.userId });
+    project = await Project.findById(projectId);
     if (!project) {
       return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
     }
@@ -108,6 +104,7 @@ export async function POST(request: NextRequest) {
     const saved = await Expense.insertMany(
       expenses.map((expense) => ({
         userId: session.userId,
+        updatedBy: session.userId,
         projectId,
         rawText: text,
         ...expense,

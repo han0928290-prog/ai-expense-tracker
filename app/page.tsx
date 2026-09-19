@@ -20,6 +20,7 @@ type SavedExpense = {
   date: string;
   note?: string;
   authorName?: string;
+  editorName?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -70,6 +71,19 @@ export default function Home() {
       setViewMode("day");
     }
   }
+
+  // The ledger is shared, so pull in other people's changes: on an interval and on refocus.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") setRefreshKey((k) => k + 1);
+    };
+    const timer = setInterval(refresh, 15000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, []);
 
   const queryKey =
     viewMode === "day"
@@ -225,9 +239,9 @@ export default function Home() {
                   {(expense.authorName || expense.createdAt) && (
                     <p className="mt-1 pl-4 text-[11px] text-ink-subtle">
                       {expense.authorName &&
-                        `由 ${expense.authorName} ${
-                          wasEdited(expense.createdAt, expense.updatedAt) ? "編輯" : "記錄"
-                        }`}
+                        (wasEdited(expense.createdAt, expense.updatedAt)
+                          ? `由 ${expense.editorName || expense.authorName} 編輯`
+                          : `由 ${expense.authorName} 記錄`)}
                       {expense.authorName && expense.createdAt ? " · " : ""}
                       {formatDateTime(
                         wasEdited(expense.createdAt, expense.updatedAt)

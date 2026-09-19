@@ -4,7 +4,7 @@ import { getCurrentSession } from "@/lib/auth/server";
 import { Types } from "mongoose";
 import Project from "@/models/Project";
 import Expense from "@/models/Expense";
-import User from "@/models/User";
+import { getUserNameMap, withAuthors } from "@/lib/user-names";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -15,23 +15,23 @@ export async function GET() {
   }
 
   await connectToDatabase();
-  const [projects, author, counts] = await Promise.all([
-    Project.find({ userId: session.userId }).sort({ createdAt: 1 }).lean(),
-    User.findById(session.userId).select("name").lean(),
+  // Projects are shared across the household.
+  const [projects, counts] = await Promise.all([
+    Project.find({}).sort({ createdAt: 1 }).lean(),
     Expense.aggregate([
-      { $match: { userId: new Types.ObjectId(session.userId), projectId: { $ne: null } } },
+      { $match: { projectId: { $ne: null } } },
       { $group: { _id: "$projectId", count: { $sum: 1 } } },
     ]),
   ]);
 
+  const names = await getUserNameMap(projects.flatMap((p) => [p.userId, p.updatedBy]));
   const countById = new Map<string, number>(
     counts.map((c: { _id: Types.ObjectId; count: number }) => [String(c._id), c.count])
   );
 
   return NextResponse.json({
-    projects: projects.map((p: { _id: Types.ObjectId }) => ({
-      ...p,
-      authorName: author?.name ?? "",
+    projects: projects.map((p) => ({
+      ...withAuthors(p, names),
       expenseCount: countById.get(String(p._id)) ?? 0,
     })),
   });
@@ -59,7 +59,13 @@ export async function POST(request: NextRequest) {
   }
 
   await connectToDatabase();
-  const project = await Project.create({ userId: session.userId, name, startDate, endDate });
+  const project = await Project.create({
+    userId: session.userId,
+    updatedBy: session.userId,
+    name,
+    startDate,
+    endDate,
+  });
 
   return NextResponse.json({ project }, { status: 201 });
 }

@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
   let project: { startDate?: string; endDate?: string } | null = null;
   if (projectId) {
-    project = await Project.findOne({ _id: projectId, userId: session.userId });
+    project = await Project.findById(projectId);
     if (!project) {
       return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
     }
@@ -70,7 +70,6 @@ export async function GET(request: NextRequest) {
 
     const { start, end } = clampToProject(`${month}-01`, `${month}-31`, project);
     const expenses = await Expense.find({
-      userId: session.userId,
       projectId,
       date: { $gte: start, $lte: end },
       ...(category ? { category } : {}),
@@ -87,7 +86,6 @@ export async function GET(request: NextRequest) {
 
   const { start, end } = clampToProject(`${year}-01-01`, `${year}-12-31`, project);
   const expenses = await Expense.find({
-    userId: session.userId,
     projectId,
     date: { $gte: start, $lte: end },
     ...(category ? { category } : {}),

@@ -280,8 +280,10 @@ export function ProjectSwitcher() {
                       )}
                       {p.createdAt && (
                         <span className="text-[11px] font-normal text-ink-subtle">
-                          {p.authorName && `由 ${p.authorName} `}
-                          {wasEdited(p.createdAt, p.updatedAt) ? "編輯" : "建立"} ·{" "}
+                          {wasEdited(p.createdAt, p.updatedAt)
+                            ? `由 ${p.editorName || p.authorName} 編輯`
+                            : `由 ${p.authorName} 建立`}{" "}
+                          ·{" "}
                           {formatDateTime(
                             wasEdited(p.createdAt, p.updatedAt) ? p.updatedAt : p.createdAt
                           )}

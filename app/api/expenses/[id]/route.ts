@@ -20,7 +20,7 @@ export async function PATCH(
 
   await connectToDatabase();
 
-  const existing = await Expense.findOne({ _id: id, userId: session.userId });
+  const existing = await Expense.findById(id);
   if (!existing) {
     return NextResponse.json({ error: "找不到這筆紀錄" }, { status: 404 });
   }
@@ -44,6 +44,10 @@ export async function PATCH(
     existing.date = body.date;
   }
 
+  // Only credit the editor when something actually changed.
+  if (existing.isModified()) {
+    existing.updatedBy = session.userId;
+  }
   await existing.save();
 
   return NextResponse.json({ expense: existing });
@@ -61,7 +65,7 @@ export async function DELETE(
   const { id } = await context.params;
 
   await connectToDatabase();
-  const result = await Expense.deleteOne({ _id: id, userId: session.userId });
+  const result = await Expense.deleteOne({ _id: id });
 
   if (result.deletedCount === 0) {
     return NextResponse.json({ error: "找不到這筆紀錄" }, { status: 404 });

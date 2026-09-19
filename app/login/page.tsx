@@ -14,7 +14,7 @@ const FEATURES = [
   {
     Icon: UsersIcon,
     title: "全家一起記",
-    desc: "每個人都有自己的帳號，帳目互不干擾",
+    desc: "每人各自登入，看到的是同一份帳目，自動同步",
   },
   {
     Icon: ChartIcon,

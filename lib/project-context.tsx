@@ -7,6 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { usePathname } from "next/navigation";
 
 export type Project = {
   _id: string;
@@ -14,6 +15,7 @@ export type Project = {
   startDate: string;
   endDate: string;
   authorName?: string;
+  editorName?: string;
   expenseCount?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -47,6 +49,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
   // It's a valid, always-available selection — not "no project chosen yet".
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
   const loadProjects = useCallback(async () => {
     const res = await fetch("/api/projects", { cache: "no-store" });
@@ -71,10 +74,24 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
+  // Reload on mount and on route changes (e.g. right after logging in).
   useEffect(() => {
     (async () => {
       await loadProjects();
     })();
+  }, [loadProjects, pathname]);
+
+  // Projects are shared too — keep the list in sync with other people's changes.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") loadProjects();
+    };
+    const timer = setInterval(refresh, 30000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [loadProjects]);
 
   function selectProject(id: string | null) {

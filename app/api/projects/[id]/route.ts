@@ -20,7 +20,7 @@ export async function PATCH(
 
   await connectToDatabase();
 
-  const existing = await Project.findOne({ _id: id, userId: session.userId });
+  const existing = await Project.findById(id);
   if (!existing) {
     return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
   }
@@ -42,6 +42,10 @@ export async function PATCH(
   existing.name = nextName;
   existing.startDate = nextStart;
   existing.endDate = nextEnd;
+  // Only credit the editor when something actually changed.
+  if (existing.isModified()) {
+    existing.updatedBy = session.userId;
+  }
   await existing.save();
 
   return NextResponse.json({ project: existing });
@@ -60,13 +64,13 @@ export async function DELETE(
 
   await connectToDatabase();
 
-  const existing = await Project.findOne({ _id: id, userId: session.userId });
+  const existing = await Project.findById(id);
   if (!existing) {
     return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
   }
 
   // Expenses belong to the project, so they go with it.
-  const removed = await Expense.deleteMany({ userId: session.userId, projectId: id });
+  const removed = await Expense.deleteMany({ projectId: id });
   await existing.deleteOne();
 
   return NextResponse.json({ ok: true, deletedExpenses: removed.deletedCount });
