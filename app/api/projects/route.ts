@@ -32,6 +32,7 @@ export async function GET() {
   return NextResponse.json({
     projects: projects.map((p) => ({
       ...withAuthors(p, names),
+      canDelete: String(p.userId) === String(session.userId),
       expenseCount: countById.get(String(p._id)) ?? 0,
     })),
   });

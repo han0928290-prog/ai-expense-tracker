@@ -13,6 +13,8 @@ export type EditableExpense = {
   merchant?: string;
   date: string;
   note?: string;
+  authorName?: string;
+  canDelete?: boolean;
 };
 
 export function ExpenseEditSheet({
@@ -168,9 +170,15 @@ export function ExpenseEditSheet({
         </form>
 
         <div className="mt-4 border-t border-card-border pt-4">
-          {confirmingDelete ? (
+          {expense.canDelete === false ? (
+            <p className="text-center text-sm text-ink-subtle">
+              只有建立者{expense.authorName ? `（${expense.authorName}）` : ""}可以刪除這筆記帳
+            </p>
+          ) : confirmingDelete ? (
             <div className="flex items-center gap-2">
-              <p className="flex-1 text-sm text-ink-muted">確定要刪除這筆記錄嗎？</p>
+              <p className="flex-1 text-sm text-ink-muted">
+                確定刪除「{expense.item} -{expense.amount.toLocaleString()} {expense.currency}」？
+              </p>
               <button
                 type="button"
                 onClick={() => setConfirmingDelete(false)}

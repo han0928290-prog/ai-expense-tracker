@@ -21,6 +21,7 @@ type SavedExpense = {
   note?: string;
   authorName?: string;
   editorName?: string;
+  canDelete?: boolean;
   createdAt?: string;
   updatedAt?: string;
 };

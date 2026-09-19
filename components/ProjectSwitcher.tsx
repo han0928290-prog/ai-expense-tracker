@@ -34,6 +34,7 @@ export function ProjectSwitcher() {
   const [editError, setEditError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   function openSheet() {
     setOpen(true);
@@ -69,6 +70,7 @@ export function ProjectSwitcher() {
     setEditEnd(p.endDate || toDateKey(new Date()));
     setEditError(null);
     setConfirmingDelete(false);
+    setDeleteConfirmText("");
   }
 
   async function handleDelete() {
@@ -86,6 +88,7 @@ export function ProjectSwitcher() {
     }
     setDeleting(false);
     setConfirmingDelete(false);
+    setDeleteConfirmText("");
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -217,11 +220,22 @@ export function ProjectSwitcher() {
                         </button>
                       </div>
                       <div className="border-t border-card-border pt-2">
-                        {confirmingDelete ? (
+                        {p.canDelete === false ? (
+                          <p className="text-center text-sm text-ink-subtle">
+                            只有建立者{p.authorName ? `（${p.authorName}）` : ""}可以刪除這個專案
+                          </p>
+                        ) : confirmingDelete ? (
                           <div className="flex flex-col gap-2">
                             <p className="text-sm text-ink-muted">
-                              確定刪除「{p.name}」？會一併刪除專案內 {p.expenseCount ?? 0} 筆記帳，無法復原。
+                              會一併刪除專案內 {p.expenseCount ?? 0} 筆記帳，無法復原。請輸入專案名稱「
+                              {p.name}」確認：
                             </p>
+                            <input
+                              value={deleteConfirmText}
+                              onChange={(e) => setDeleteConfirmText(e.target.value)}
+                              placeholder={p.name}
+                              className="rounded-xl border border-card-border bg-app px-3 py-2 text-sm text-ink outline-none focus:border-danger"
+                            />
                             <div className="flex gap-2">
                               <button
                                 type="button"
@@ -233,7 +247,7 @@ export function ProjectSwitcher() {
                               <button
                                 type="button"
                                 onClick={handleDelete}
-                                disabled={deleting}
+                                disabled={deleting || deleteConfirmText.trim() !== p.name}
                                 className="flex-1 rounded-xl bg-danger py-2 text-sm font-semibold text-white disabled:opacity-50"
                               >
                                 {deleting ? "刪除中..." : "確定刪除"}

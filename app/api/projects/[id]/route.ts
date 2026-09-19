@@ -69,6 +69,22 @@ export async function DELETE(
     return NextResponse.json({ error: "找不到這個專案" }, { status: 404 });
   }
 
+  if (String(existing.userId) !== String(session.userId)) {
+    return NextResponse.json({ error: "只有建立者可以刪除這個專案" }, { status: 403 });
+  }
+
+  // Deleting cascades to the project's expenses, so don't let it wipe out other people's entries.
+  const othersCount = await Expense.countDocuments({
+    projectId: id,
+    userId: { $ne: session.userId },
+  });
+  if (othersCount > 0) {
+    return NextResponse.json(
+      { error: `專案內有 ${othersCount} 筆別人記的帳，無法刪除` },
+      { status: 409 }
+    );
+  }
+
   // Expenses belong to the project, so they go with it.
   const removed = await Expense.deleteMany({ projectId: id });
   await existing.deleteOne();

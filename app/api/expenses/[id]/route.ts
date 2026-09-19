@@ -65,11 +65,15 @@ export async function DELETE(
   const { id } = await context.params;
 
   await connectToDatabase();
-  const result = await Expense.deleteOne({ _id: id });
-
-  if (result.deletedCount === 0) {
+  const existing = await Expense.findById(id);
+  if (!existing) {
     return NextResponse.json({ error: "找不到這筆紀錄" }, { status: 404 });
   }
+  if (String(existing.userId) !== String(session.userId)) {
+    return NextResponse.json({ error: "只有建立者可以刪除這筆記帳" }, { status: 403 });
+  }
+
+  await existing.deleteOne();
 
   return NextResponse.json({ ok: true });
 }

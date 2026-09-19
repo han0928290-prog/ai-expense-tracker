@@ -69,7 +69,10 @@ export async function GET(request: NextRequest) {
     .lean();
   const names = await getUserNameMap(expenses.flatMap((e) => [e.userId, e.updatedBy]));
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const withAuthor = expenses.map((expense) => withAuthors(expense, names));
+  const withAuthor = expenses.map((expense) => ({
+    ...withAuthors(expense, names),
+    canDelete: String(expense.userId) === String(session.userId),
+  }));
 
   return NextResponse.json({ date, startDate, endDate, expenses: withAuthor, total });
 }

@@ -16,6 +16,7 @@ export type Project = {
   endDate: string;
   authorName?: string;
   editorName?: string;
+  canDelete?: boolean;
   expenseCount?: number;
   createdAt?: string;
   updatedAt?: string;
