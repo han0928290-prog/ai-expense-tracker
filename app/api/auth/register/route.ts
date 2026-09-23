@@ -4,7 +4,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { setSessionCookie } from "@/lib/auth/server";
 import User from "@/models/User";
 
-const REGISTRATION_CODE = "love";
+const REGISTRATION_CODE = process.env.REGISTRATION_CODE;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: NextRequest) {
