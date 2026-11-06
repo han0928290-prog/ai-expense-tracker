@@ -6,10 +6,11 @@ import { clampToProject, formatShortDate } from "@/lib/date";
 import Expense from "@/models/Expense";
 import Project from "@/models/Project";
 import { getUserNameMap, withAuthors } from "@/lib/user-names";
+import { ledgerCurrency } from "@/lib/currencies";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-type ProjectRange = { startDate?: string; endDate?: string };
+type ProjectRange = { startDate?: string; endDate?: string; currency?: string };
 
 export async function GET(request: NextRequest) {
   const session = await getCurrentSession();
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { summary, expenses } = await analyzeExpenseText(text);
+    const { summary, expenses } = await analyzeExpenseText(text, ledgerCurrency(project));
 
     // A project only accepts entries dated inside its own period.
     const range: ProjectRange | null = project;

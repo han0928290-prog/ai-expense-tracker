@@ -3,9 +3,40 @@
 import { useState } from "react";
 import { useProject } from "@/lib/project-context";
 import { toDateKey, formatShortDate, formatDateTime, wasEdited } from "@/lib/date";
+import { CURRENCIES, DEFAULT_CURRENCY, ledgerCurrency } from "@/lib/currencies";
 import { FolderIcon, ChevronDownIcon, CheckIcon, EditIcon } from "@/components/icons";
 
 const GENERAL_LABEL = "日常記帳";
+
+function CurrencySelect({
+  value,
+  onChange,
+  disabled,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  className: string;
+}) {
+  return (
+    <label className="flex items-center gap-2 text-sm text-ink-muted">
+      <span className="shrink-0">記帳幣別</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className={className}
+      >
+        {CURRENCIES.map((c) => (
+          <option key={c.code} value={c.code}>
+            {c.code} {c.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 export function ProjectSwitcher() {
   const {
@@ -23,6 +54,7 @@ export function ProjectSwitcher() {
   const [newName, setNewName] = useState("");
   const [newStart, setNewStart] = useState(() => toDateKey(new Date()));
   const [newEnd, setNewEnd] = useState(() => toDateKey(new Date()));
+  const [newCurrency, setNewCurrency] = useState(DEFAULT_CURRENCY);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -30,6 +62,7 @@ export function ProjectSwitcher() {
   const [editName, setEditName] = useState("");
   const [editStart, setEditStart] = useState("");
   const [editEnd, setEditEnd] = useState("");
+  const [editCurrency, setEditCurrency] = useState(DEFAULT_CURRENCY);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -40,6 +73,7 @@ export function ProjectSwitcher() {
     setOpen(true);
     setCreateError(null);
     setNewName("");
+    setNewCurrency(DEFAULT_CURRENCY);
     setEditingId(null);
   }
 
@@ -63,11 +97,18 @@ export function ProjectSwitcher() {
     if (value < editStart) setEditStart(value);
   }
 
-  function startEdit(p: { _id: string; name: string; startDate: string; endDate: string }) {
+  function startEdit(p: {
+    _id: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    currency?: string;
+  }) {
     setEditingId(p._id);
     setEditName(p.name);
     setEditStart(p.startDate || toDateKey(new Date()));
     setEditEnd(p.endDate || toDateKey(new Date()));
+    setEditCurrency(ledgerCurrency(p));
     setEditError(null);
     setConfirmingDelete(false);
     setDeleteConfirmText("");
@@ -98,7 +139,7 @@ export function ProjectSwitcher() {
     setCreating(true);
     setCreateError(null);
 
-    const result = await createProject(newName.trim(), newStart, newEnd);
+    const result = await createProject(newName.trim(), newStart, newEnd, newCurrency);
 
     if (result.error) {
       setCreateError(result.error);
@@ -119,6 +160,7 @@ export function ProjectSwitcher() {
       name: editName.trim(),
       startDate: editStart,
       endDate: editEnd,
+      currency: editCurrency,
     });
 
     if (result.error) {
@@ -202,6 +244,15 @@ export function ProjectSwitcher() {
                           className="flex-1 rounded-xl border border-card-border bg-app px-3 py-2 text-sm text-ink outline-none focus:border-accent"
                         />
                       </div>
+                      <CurrencySelect
+                        value={editCurrency}
+                        onChange={setEditCurrency}
+                        disabled={(p.expenseCount ?? 0) > 0}
+                        className="flex-1 rounded-xl border border-card-border bg-app px-3 py-2 text-sm text-ink outline-none focus:border-accent disabled:opacity-60"
+                      />
+                      {(p.expenseCount ?? 0) > 0 && (
+                        <p className="text-xs text-ink-subtle">專案內已有記帳，幣別無法更改</p>
+                      )}
                       {editError && <p className="text-sm text-danger">{editError}</p>}
                       <div className="flex gap-2">
                         <button
@@ -289,7 +340,8 @@ export function ProjectSwitcher() {
                       </span>
                       {p.startDate && p.endDate && (
                         <span className="text-xs font-normal text-ink-subtle">
-                          {formatShortDate(p.startDate)} - {formatShortDate(p.endDate)}
+                          {formatShortDate(p.startDate)} - {formatShortDate(p.endDate)} ·{" "}
+                          {ledgerCurrency(p)}
                         </span>
                       )}
                       {p.createdAt && (
@@ -340,6 +392,11 @@ export function ProjectSwitcher() {
                   className="flex-1 rounded-xl border border-card-border bg-app px-3 py-2.5 text-sm text-ink outline-none transition-colors focus:border-accent"
                 />
               </div>
+              <CurrencySelect
+                value={newCurrency}
+                onChange={setNewCurrency}
+                className="flex-1 rounded-xl border border-card-border bg-app px-3 py-2.5 text-sm text-ink outline-none transition-colors focus:border-accent"
+              />
               <button
                 type="submit"
                 disabled={creating || !newName.trim()}

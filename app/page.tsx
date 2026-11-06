@@ -9,6 +9,7 @@ import { ExpenseEditSheet } from "@/components/ExpenseEditSheet";
 import { getCategoryColorVar } from "@/lib/categories";
 import { toDateKey, formatShortDate, formatDateTime, wasEdited } from "@/lib/date";
 import { useProject } from "@/lib/project-context";
+import { ledgerCurrency } from "@/lib/currencies";
 
 type SavedExpense = {
   _id: string;
@@ -43,6 +44,7 @@ function formatDateLabel(dateKey: string): string {
 
 export default function Home() {
   const { currentProjectId, currentProject } = useProject();
+  const currency = ledgerCurrency(currentProject);
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [selectedDate, setSelectedDate] = useState(() => toDateKey(new Date()));
   const [rangeStart, setRangeStart] = useState(() => toDateKey(new Date()));
@@ -199,7 +201,7 @@ export default function Home() {
                   : `${formatShortDate(rangeStart)} - ${formatShortDate(rangeEnd)}`}
               </h2>
               <p className="text-sm font-semibold text-ink">
-                -{total.toLocaleString()} TWD
+                -{total.toLocaleString()} {currency}
               </p>
             </div>
 
@@ -258,7 +260,12 @@ export default function Home() {
         </div>
 
         <div className="md:w-80 md:shrink-0">
-          <CategorySummary month={month} projectId={currentProjectId} refreshKey={refreshKey} />
+          <CategorySummary
+            month={month}
+            projectId={currentProjectId}
+            refreshKey={refreshKey}
+            currency={currency}
+          />
         </div>
       </div>
 

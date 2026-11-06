@@ -14,9 +14,11 @@ const GAP = 3;
 export function CategoryPieChart({
   total,
   byCategory,
+  currency = "TWD",
 }: {
   total: number;
   byCategory: CategoryAmount[];
+  currency?: string;
 }) {
   const [active, setActive] = useState<string | null>(null);
 
@@ -79,7 +81,7 @@ export function CategoryPieChart({
               {(activeSegment ? activeSegment.amount : total).toLocaleString()}
             </span>
             <span className="text-[10px] text-ink-subtle">
-              {activeSegment ? activeSegment.category : "TWD"}
+              {activeSegment ? activeSegment.category : currency}
             </span>
           </div>
         </div>

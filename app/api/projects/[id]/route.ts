@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { getCurrentSession } from "@/lib/auth/server";
 import Project from "@/models/Project";
 import Expense from "@/models/Expense";
+import { isCurrencyCode, ledgerCurrency } from "@/lib/currencies";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -28,6 +29,8 @@ export async function PATCH(
   const nextName = typeof body?.name === "string" ? body.name.trim() : existing.name;
   const nextStart = typeof body?.startDate === "string" ? body.startDate : existing.startDate;
   const nextEnd = typeof body?.endDate === "string" ? body.endDate : existing.endDate;
+  const currentCurrency = ledgerCurrency(existing);
+  const nextCurrency = body?.currency ?? currentCurrency;
 
   if (!nextName) {
     return NextResponse.json({ error: "請輸入專案名稱" }, { status: 400 });
@@ -37,6 +40,20 @@ export async function PATCH(
   }
   if (nextStart > nextEnd) {
     return NextResponse.json({ error: "起始日期不能晚於結束日期" }, { status: 400 });
+  }
+
+  if (!isCurrencyCode(nextCurrency)) {
+    return NextResponse.json({ error: "不支援這個幣別" }, { status: 400 });
+  }
+  // Amounts aren't converted, so the currency is locked once the project has entries.
+  if (nextCurrency !== currentCurrency) {
+    const count = await Expense.countDocuments({ projectId: id });
+    if (count > 0) {
+      return NextResponse.json(
+        { error: `專案內已有 ${count} 筆記帳，無法更改幣別` },
+        { status: 409 }
+      );
+    }
   }
 
   // The new period must still cover every entry already filed under this project.
@@ -54,6 +71,7 @@ export async function PATCH(
   existing.name = nextName;
   existing.startDate = nextStart;
   existing.endDate = nextEnd;
+  existing.currency = nextCurrency;
   // Only credit the editor when something actually changed.
   if (existing.isModified()) {
     existing.updatedBy = session.userId;

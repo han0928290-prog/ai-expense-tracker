@@ -14,6 +14,7 @@ export type Project = {
   name: string;
   startDate: string;
   endDate: string;
+  currency?: string;
   authorName?: string;
   editorName?: string;
   canDelete?: boolean;
@@ -31,11 +32,12 @@ type ProjectContextValue = {
   createProject: (
     name: string,
     startDate: string,
-    endDate: string
+    endDate: string,
+    currency: string
   ) => Promise<{ error?: string }>;
   updateProject: (
     id: string,
-    updates: { name: string; startDate: string; endDate: string }
+    updates: { name: string; startDate: string; endDate: string; currency: string }
   ) => Promise<{ error?: string }>;
   deleteProject: (id: string) => Promise<{ error?: string }>;
 };
@@ -111,12 +113,13 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
   async function createProject(
     name: string,
     startDate: string,
-    endDate: string
+    endDate: string,
+    currency: string
   ): Promise<{ error?: string }> {
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, startDate, endDate }),
+      body: JSON.stringify({ name, startDate, endDate, currency }),
     });
     const data = await res.json().catch(() => null);
 
@@ -131,7 +134,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
   async function updateProject(
     id: string,
-    updates: { name: string; startDate: string; endDate: string }
+    updates: { name: string; startDate: string; endDate: string; currency: string }
   ): Promise<{ error?: string }> {
     const res = await fetch(`/api/projects/${id}`, {
       method: "PATCH",

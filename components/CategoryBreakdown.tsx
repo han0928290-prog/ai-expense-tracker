@@ -7,11 +7,13 @@ export function CategoryBreakdown({
   total,
   byCategory,
   emptyText = "這段期間還沒有記錄",
+  currency = "TWD",
 }: {
   title?: string;
   total: number;
   byCategory: CategoryAmount[];
   emptyText?: string;
+  currency?: string;
 }) {
   return (
     <div className="rounded-2xl bg-card p-4 shadow-sm shadow-black/5 ring-1 ring-card-border">
@@ -22,7 +24,7 @@ export function CategoryBreakdown({
           <span />
         )}
         <p className="text-lg font-semibold text-ink">
-          {total.toLocaleString()} TWD
+          {total.toLocaleString()} {currency}
         </p>
       </div>
 

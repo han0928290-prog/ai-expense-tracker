@@ -6,6 +6,7 @@ export interface IProject {
   name: string;
   startDate: string;
   endDate: string;
+  currency: string;
   createdAt?: Date;
 }
 
@@ -18,6 +19,8 @@ const ProjectSchema = new Schema<IProject>(
     // The project's own statistics period — set at creation, editable afterward.
     startDate: { type: String, required: true },
     endDate: { type: String, required: true },
+    // Every entry in the project is recorded in this currency (the general ledger is always TWD).
+    currency: { type: String, required: true, default: "TWD" },
   },
   { timestamps: true }
 );

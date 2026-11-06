@@ -11,10 +11,12 @@ export function CategorySummary({
   month,
   projectId,
   refreshKey,
+  currency,
 }: {
   month: string;
   projectId: string | null;
   refreshKey: number;
+  currency: string;
 }) {
   const [data, setData] = useState<MonthSummary | null>(null);
 
@@ -43,8 +45,13 @@ export function CategorySummary({
         total={data?.total ?? 0}
         byCategory={data?.byCategory ?? []}
         emptyText="這個月還沒有記帳紀錄"
+        currency={currency}
       />
-      <CategoryPieChart total={data?.total ?? 0} byCategory={data?.byCategory ?? []} />
+      <CategoryPieChart
+        total={data?.total ?? 0}
+        byCategory={data?.byCategory ?? []}
+        currency={currency}
+      />
     </div>
   );
 }

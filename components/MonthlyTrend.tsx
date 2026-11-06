@@ -8,12 +8,14 @@ export function MonthlyTrend({
   onSelectMonth,
   title = "各月支出趨勢",
   colorVar = DEFAULT_TREND_COLOR_VAR,
+  currency = "TWD",
 }: {
   byMonth: MonthAmount[];
   selectedMonth?: string;
   onSelectMonth?: (month: string) => void;
   title?: string;
   colorVar?: string;
+  currency?: string;
 }) {
   const max = Math.max(1, ...byMonth.map((m) => m.amount));
   const peakIndex = byMonth.reduce(
@@ -35,7 +37,7 @@ export function MonthlyTrend({
               type="button"
               onClick={() => onSelectMonth?.(m.month)}
               className="flex flex-1 flex-col items-center gap-1"
-              aria-label={`${m.month} 支出 ${m.amount} TWD`}
+              aria-label={`${m.month} 支出 ${m.amount} ${currency}`}
             >
               {i === peakIndex && m.amount > 0 && (
                 <span className="text-[10px] font-medium tabular-nums text-ink-muted">

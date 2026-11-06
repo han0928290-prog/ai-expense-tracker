@@ -9,6 +9,7 @@ import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { toMonthKey } from "@/lib/date";
 import { ALL_CATEGORY, getCategoryColorVar } from "@/lib/categories";
 import { useProject } from "@/lib/project-context";
+import { ledgerCurrency } from "@/lib/currencies";
 
 type CategoryAmount = { category: string; amount: number };
 type MonthSummary = { total: number; byCategory: CategoryAmount[] };
@@ -30,7 +31,8 @@ function formatMonthLabel(monthKey: string): string {
 }
 
 export default function StatsPage() {
-  const { currentProjectId } = useProject();
+  const { currentProjectId, currentProject } = useProject();
+  const currency = ledgerCurrency(currentProject);
   const [tab, setTab] = useState<"month" | "year">("month");
   const [month, setMonth] = useState(() => toMonthKey(new Date()));
   const [year, setYear] = useState(() => String(new Date().getFullYear()));
@@ -135,7 +137,7 @@ export default function StatsPage() {
               </div>
               <p className="mt-2 text-3xl font-semibold text-ink">
                 {(monthData?.total ?? 0).toLocaleString()}{" "}
-                <span className="text-base font-normal text-ink-subtle">TWD</span>
+                <span className="text-base font-normal text-ink-subtle">{currency}</span>
               </p>
             </div>
           ) : (
@@ -143,10 +145,12 @@ export default function StatsPage() {
               <CategoryBreakdown
                 total={monthData?.total ?? 0}
                 byCategory={monthData?.byCategory ?? []}
+                currency={currency}
               />
               <CategoryPieChart
                 total={monthData?.total ?? 0}
                 byCategory={monthData?.byCategory ?? []}
+                currency={currency}
               />
             </div>
           )}
@@ -184,7 +188,7 @@ export default function StatsPage() {
               </div>
               <p className="mt-2 text-3xl font-semibold text-ink">
                 {(yearData?.total ?? 0).toLocaleString()}{" "}
-                <span className="text-base font-normal text-ink-subtle">TWD</span>
+                <span className="text-base font-normal text-ink-subtle">{currency}</span>
               </p>
             </div>
           ) : (
@@ -192,10 +196,12 @@ export default function StatsPage() {
               <CategoryBreakdown
                 total={yearData?.total ?? 0}
                 byCategory={yearData?.byCategory ?? []}
+                currency={currency}
               />
               <CategoryPieChart
                 total={yearData?.total ?? 0}
                 byCategory={yearData?.byCategory ?? []}
+                currency={currency}
               />
             </div>
           )}
@@ -209,6 +215,7 @@ export default function StatsPage() {
             }}
             title={isFiltered ? `${category} 各月支出趨勢` : "各月支出趨勢"}
             colorVar={trendColorVar}
+            currency={currency}
           />
         </>
       )}

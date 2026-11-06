@@ -5,6 +5,7 @@ import { Types } from "mongoose";
 import Project from "@/models/Project";
 import Expense from "@/models/Expense";
 import { getUserNameMap, withAuthors } from "@/lib/user-names";
+import { DEFAULT_CURRENCY, isCurrencyCode } from "@/lib/currencies";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const startDate = typeof body?.startDate === "string" ? body.startDate : "";
   const endDate = typeof body?.endDate === "string" ? body.endDate : "";
+  const currency = body?.currency ?? DEFAULT_CURRENCY;
 
   if (!name) {
     return NextResponse.json({ error: "請輸入專案名稱" }, { status: 400 });
@@ -58,6 +60,9 @@ export async function POST(request: NextRequest) {
   if (startDate > endDate) {
     return NextResponse.json({ error: "起始日期不能晚於結束日期" }, { status: 400 });
   }
+  if (!isCurrencyCode(currency)) {
+    return NextResponse.json({ error: "不支援這個幣別" }, { status: 400 });
+  }
 
   await connectToDatabase();
   const project = await Project.create({
@@ -66,6 +71,7 @@ export async function POST(request: NextRequest) {
     name,
     startDate,
     endDate,
+    currency,
   });
 
   return NextResponse.json({ project }, { status: 201 });
